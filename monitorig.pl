@@ -4,11 +4,11 @@
 #   Program:    monitorig
 #   File:       monitorig.pl
 #   
-#   Version:    V1.0
-#   Date:       11.07.19
+#   Version:    V1.1
+#   Date:       29.07.19
 #   Function:   Monitor an Instagram account
 #   
-#   Copyright:  (c) Andrew C. R. Martin, 2010
+#   Copyright:  (c) Andrew C. R. Martin, 2019
 #   Author:     Andrew C. R. Martin
 #   EMail:      andrew@andrew-martin.org
 #               
@@ -42,6 +42,8 @@
 #   Revision History:
 #   =================
 #   V1.0    11.07.19  Original   By: ACRM
+#   V1.1    19.07.19  Now monitors every hour, but just outputs a '.'
+#                     unless the data have changed.
 #
 #*************************************************************************
 # Add the path of the executable to the library path
@@ -69,31 +71,37 @@ my $sleepTime = defined($::s)?$::s:$defaultSleep;
 my $tfile     = "/var/tmp/monitorig_$$";
 my $url       = "https://www.instagram.com/$user/";
 my $sleepTime = $sleepTime*60*60;
+my $LastData  = '';
+my $CRStatus  = 1;
 
 while(1)
 {
-    if(IsTime(12) || IsTime(17) || IsTime(23))
-    {
-        GrabFile($tfile, $url);
-        my($error, $followers, $following, $posts) = GrabData($tfile);
-        unlink($tfile);
+    GrabFile($tfile, $url);
+    my($error, $followers, $following, $posts) = GrabData($tfile);
+    unlink($tfile);
 
-        if($error == 0)
+    if($error == 0)
+    {
+        if(DataChanged(\$LastData, $posts, $followers, $following))
         {
-            WriteMessage($ofile, '', $posts, $followers, $following);
-        }
-        elsif($error == 1)
-        {
-            WriteMessage($ofile, 'Failed to download Instagram page!', 0, 0, 0);
-        }
-        elsif($error == 2)
-        {
-            WriteMessage($ofile, 'Instagram page format has changed!!!', 0, 0, 0);
+            WriteMessage($ofile, \$CRStatus, '', $posts, $followers, $following);
         }
         else
         {
-            WriteMessage($ofile, 'Undefined error!', 0, 0, 0);
+            WriteMessage($ofile, \$CRStatus, '.', 0, 0, 0);
         }
+    }
+    elsif($error == 1)
+    {
+        WriteMessage($ofile, \$CRStatus, 'Failed to download Instagram page!\n', 0, 0, 0);
+    }
+    elsif($error == 2)
+    {
+        WriteMessage($ofile, \$CRStatus, 'Instagram page format has changed!!!\n', 0, 0, 0);
+    }
+    else
+    {
+        WriteMessage($ofile, \$CRStatus, 'Undefined error!\n', 0, 0, 0);
     }
     sleep($sleepTime);
 }
@@ -148,7 +156,7 @@ sub GrabData
 #*************************************************************************
 sub WriteMessage
 {
-    my($ofile, $msg, $posts, $followers, $following) = @_;
+    my($ofile, $pCRStatus, $msg, $posts, $followers, $following) = @_;
 
     $posts     =~ s/\,//g;
     $followers =~ s/\,//g;
@@ -156,20 +164,29 @@ sub WriteMessage
     
     if(open(my $fp, '>>', $ofile))
     {
-        if($msg ne '')
+        if($msg eq '.')
         {
-            printf($fp "%s : ERROR! $msg\n", GetDateTime());
+            printf($fp '.');
+            $$pCRStatus = 0;
+        }
+        elsif($msg ne '')
+        {
+            printf($fp "\n") if($$pCRStatus == 0);
+            printf($fp "%s : ERROR! $msg", GetDateTime());
+            $$pCRStatus = 1;
         }
         else
         {
+            printf($fp "\n") if($$pCRStatus == 0);
             printf($fp "%s : $posts/$followers/$following\n", GetDateTime());
+            $$pCRStatus = 1;
         }
         
         close($fp);
     }
     else
     {
-        print("ERROR! Unable to write log file $ofile\n");
+        print(STDERR "ERROR! Unable to write log file $ofile\n");
         exit 1;
     }
 }
@@ -203,6 +220,23 @@ sub IsTime
     return(0);
 }
 
+
+#*************************************************************************
+sub DataChanged
+{
+    my($pLastData, $posts, $followers, $following) = @_;
+
+    my $newData = "$posts:$followers:$following";
+    if($newData ne $$pLastData)
+    {
+        $$pLastData = $newData;
+        return(1);
+    }
+
+    return(0);
+}
+
+
 #*************************************************************************
 sub UsageDie
 {
@@ -210,15 +244,15 @@ sub UsageDie
 
     print <<__EOF;
 
-monitorig V1.0 (c) 2019 Andrew C.R. Martin
+monitorig V1.1 (c) 2019 Andrew C.R. Martin
 
 Usage: monitorig [-u=user] [-s=sleep] [-o=output]
        -u  Specify user account to monitor [$defaultUser]
        -s  Specify sleep time in hours [$defaultSleep]
        -o  Specify output file [$defaultOutput]
 
-Monitors an Instagram account checking at 12pm, 5pm and 11pm for number
-of posts, followers and following.
+Monitors an Instagram account each hour for the number of posts, 
+followers and following. If no change, just prints a '.'.
 
 __EOF
     exit 0;
