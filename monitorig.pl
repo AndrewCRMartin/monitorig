@@ -4,8 +4,8 @@
 #   Program:    monitorig
 #   File:       monitorig.pl
 #   
-#   Version:    V1.1
-#   Date:       29.07.19
+#   Version:    V1.2
+#   Date:       15.11.19
 #   Function:   Monitor an Instagram account
 #   
 #   Copyright:  (c) Andrew C. R. Martin, 2019
@@ -44,6 +44,7 @@
 #   V1.0    11.07.19  Original   By: ACRM
 #   V1.1    19.07.19  Now monitors every hour, but just outputs a '.'
 #                     unless the data have changed.
+#   V1.2    15.11.19  Fixed some '' strings to ""
 #
 #*************************************************************************
 # Add the path of the executable to the library path
@@ -93,15 +94,15 @@ while(1)
     }
     elsif($error == 1)
     {
-        WriteMessage($ofile, \$CRStatus, 'Failed to download Instagram page!\n', 0, 0, 0);
+        WriteMessage($ofile, \$CRStatus, "Failed to download Instagram page!\n", 0, 0, 0);
     }
     elsif($error == 2)
     {
-        WriteMessage($ofile, \$CRStatus, 'Instagram page format has changed!!!\n', 0, 0, 0);
+        WriteMessage($ofile, \$CRStatus, "Instagram page format has changed!!!\n", 0, 0, 0);
     }
     else
     {
-        WriteMessage($ofile, \$CRStatus, 'Undefined error!\n', 0, 0, 0);
+        WriteMessage($ofile, \$CRStatus, "Undefined error!\n", 0, 0, 0);
     }
     sleep($sleepTime);
 }
