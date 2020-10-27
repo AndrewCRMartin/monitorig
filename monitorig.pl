@@ -4,11 +4,11 @@
 #   Program:    monitorig
 #   File:       monitorig.pl
 #   
-#   Version:    V1.2
-#   Date:       15.11.19
+#   Version:    V1.3
+#   Date:       27.10.20
 #   Function:   Monitor an Instagram account
 #   
-#   Copyright:  (c) Andrew C. R. Martin, 2019
+#   Copyright:  (c) Andrew C. R. Martin, 2019-20
 #   Author:     Andrew C. R. Martin
 #   EMail:      andrew@andrew-martin.org
 #               
@@ -45,6 +45,8 @@
 #   V1.1    19.07.19  Now monitors every hour, but just outputs a '.'
 #                     unless the data have changed.
 #   V1.2    15.11.19  Fixed some '' strings to ""
+#   V1.3    27.10.20  Prints single character error codes instead of
+#                     full messages
 #
 #*************************************************************************
 # Add the path of the executable to the library path
@@ -94,15 +96,15 @@ while(1)
     }
     elsif($error == 1)
     {
-        WriteMessage($ofile, \$CRStatus, "Failed to download Instagram page!\n", 0, 0, 0);
+        WriteMessage($ofile, \$CRStatus, "Z", 0, 0, 0);
     }
     elsif($error == 2)
     {
-        WriteMessage($ofile, \$CRStatus, "Instagram page format has changed!!!\n", 0, 0, 0);
+        WriteMessage($ofile, \$CRStatus, "X", 0, 0, 0);
     }
     else
     {
-        WriteMessage($ofile, \$CRStatus, "Undefined error!\n", 0, 0, 0);
+        WriteMessage($ofile, \$CRStatus, "U", 0, 0, 0);
     }
     sleep($sleepTime);
 }
@@ -245,7 +247,7 @@ sub UsageDie
 
     print <<__EOF;
 
-monitorig V1.1 (c) 2019 Andrew C.R. Martin
+monitorig V1.3 (c) 2019-20 Andrew C.R. Martin
 
 Usage: monitorig [-u=user] [-s=sleep] [-o=output]
        -u  Specify user account to monitor [$defaultUser]
@@ -254,6 +256,11 @@ Usage: monitorig [-u=user] [-s=sleep] [-o=output]
 
 Monitors an Instagram account each hour for the number of posts, 
 followers and following. If no change, just prints a '.'.
+
+If an error occurs, instead of a '.', it will print
+X - unable to parse the downloaded page
+Z - unable to download the instagram page
+U - undefined error
 
 __EOF
     exit 0;
