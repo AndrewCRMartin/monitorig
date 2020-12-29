@@ -47,6 +47,7 @@
 #   V1.2    15.11.19  Fixed some '' strings to ""
 #   V1.3    27.10.20  Prints single character error codes instead of
 #                     full messages
+#   V1.4    29.12.20  Added -d
 #
 #*************************************************************************
 # Add the path of the executable to the library path
@@ -106,6 +107,9 @@ while(1)
     {
         WriteMessage($ofile, \$CRStatus, "U", 0, 0, 0);
     }
+
+    last if(defined($::d));
+
     sleep($sleepTime);
 }
 
@@ -164,33 +168,47 @@ sub WriteMessage
     $posts     =~ s/\,//g;
     $followers =~ s/\,//g;
     $following =~ s/\,//g;
-    
-    if(open(my $fp, '>>', $ofile))
+    my $fp = *STDOUT;
+
+    if(!defined($::d))
     {
-        if($msg eq '.')
-        {
-            printf($fp '.');
-            $$pCRStatus = 0;
+        if(!open($fp, '>>', $ofile))
+        {    
+            print(STDERR "ERROR! Unable to write log file $ofile\n");
+            exit 1;
         }
-        elsif($msg ne '')
-        {
-            printf($fp "\n") if($$pCRStatus == 0);
-            printf($fp "%s : ERROR! $msg", GetDateTime());
-            $$pCRStatus = 1;
-        }
-        else
-        {
-            printf($fp "\n") if($$pCRStatus == 0);
-            printf($fp "%s : $posts/$followers/$following\n", GetDateTime());
-            $$pCRStatus = 1;
-        }
-        
-        close($fp);
+    }
+
+    if($msg eq '.')
+    {
+        printf($fp $msg);
+        $$pCRStatus = 0;
+    }
+    elsif($msg eq 'X')
+    {
+        printf($fp $msg);
+        $$pCRStatus = 0;
+    }
+    elsif($msg ne '')
+    {
+        printf($fp "\n") if($$pCRStatus == 0);
+        printf($fp "%s : ERROR! $msg", GetDateTime());
+        $$pCRStatus = 1;
     }
     else
     {
-        print(STDERR "ERROR! Unable to write log file $ofile\n");
-        exit 1;
+        printf($fp "\n") if($$pCRStatus == 0);
+        printf($fp "%s : $posts/$followers/$following\n", GetDateTime());
+        $$pCRStatus = 1;
+    }
+
+    if(defined($::d))
+    {
+        print "\n";
+    }
+    else
+    {
+        close($fp);
     }
 }
 
@@ -247,12 +265,13 @@ sub UsageDie
 
     print <<__EOF;
 
-monitorig V1.3 (c) 2019-20 Andrew C.R. Martin
+monitorig V1.4 (c) 2019-20 Andrew C.R. Martin
 
-Usage: monitorig [-u=user] [-s=sleep] [-o=output]
+Usage: monitorig [-u=user] [-s=sleep] [-o=output] [-d] 
        -u  Specify user account to monitor [$defaultUser]
        -s  Specify sleep time in hours [$defaultSleep]
        -o  Specify output file [$defaultOutput]
+       -d  Debug mode - just does one get and outputs to screen
 
 Monitors an Instagram account each hour for the number of posts, 
 followers and following. If no change, just prints a '.'.
